@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Container Planner — Quản lý Kế hoạch Phân xe & Booking</title>
+<style>
+:root{
+  --primary:#1677ff; --primary-hover:#4096ff; --primary-active:#0958d9; --primary-bg:#e6f4ff;
+  --success:#52c41a; --success-bg:#f6ffed;
+  --warning:#faad14; --warning-bg:#fffbe6;
+  --error:#ff4d4f; --error-bg:#fff1f0;
+  --text:rgba(0,0,0,.88); --text-2:rgba(0,0,0,.65); --text-3:rgba(0,0,0,.45); --text-4:rgba(0,0,0,.25);
+  --border:#d9d9d9; --border-2:#f0f0f0;
+  --fill:rgba(0,0,0,.04);
+  --bg-layout:#f5f5f5; --bg:#fff;
+  --sider-bg:#001529; --sider-hover:rgba(255,255,255,.08);
+  --radius:8px; --radius-sm:6px;
+  --shadow:0 1px 2px rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px rgba(0,0,0,.02);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg-layout);color:var(--text);font-size:14px;line-height:1.5715}
+button,input,select,textarea{font:inherit}
+h1,h2,h3,h4{margin:0}
+
+.app{display:flex;min-height:100vh}
+.sider{width:256px;flex:0 0 256px;background:#fff;color:var(--text);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--border-2)}
+.logo{display:flex;align-items:center;gap:10px;padding:18px 20px;color:var(--text);font-weight:600;font-size:15px;border-bottom:1px solid var(--border-2)}
+.logo .mark{width:28px;height:28px;border-radius:6px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:0 0 28px}
+nav.menu{padding:8px 4px;flex:1}
+.menu-group-head,.menu-item{display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;margin:2px 4px;border-radius:6px;cursor:pointer;font-size:14px;transition:background .15s,color .15s}
+.menu-group-head:hover,.menu-item:hover{background:var(--fill);color:var(--text)}
+.menu-group-head{font-weight:500}.menu-group-head svg{width:16px;height:16px;fill:currentColor;flex:0 0 16px}
+.menu-group-head .chevron{margin-left:auto;font-size:11px;transition:transform .2s}.menu-group.collapsed .chevron{transform:rotate(-90deg)}
+.menu-group.collapsed .menu-children{display:none}
+.menu-item{padding-left:42px;color:var(--text-2)}
+.menu-item.active{background:var(--primary-bg);color:var(--primary);font-weight:500}
+.sider-footer{padding:14px 20px;font-size:12px;color:var(--text-3);border-top:1px solid var(--border-2)}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:56px;background:#fff;border-bottom:1px solid var(--border-2);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:10}
+.topbar h1{font-size:16px;font-weight:600}
+.period-bar{display:flex;align-items:center;gap:8px}
+.period-bar label{font-size:12px;color:var(--text-2);font-weight:600}
+.date-picker{position:relative;min-width:170px}
+.date-picker.wide{width:100%}
+.date-picker-trigger{width:100%;height:32px;padding:0 11px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:all .15s;text-align:left}
+.date-picker-trigger:hover,.date-picker.open .date-picker-trigger{border-color:var(--primary)}
+.date-picker.open .date-picker-trigger{box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.date-picker-trigger.placeholder{color:var(--text-4)}
+.date-picker-trigger:disabled{background:var(--fill);color:var(--text-3);cursor:not-allowed}
+.date-picker-trigger svg{width:15px;height:15px;fill:currentColor;color:var(--text-3);flex:0 0 15px}
+.date-picker-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;width:294px;background:#fff;border-radius:8px;box-shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);z-index:1200;overflow:hidden}
+.date-picker.open .date-picker-panel{display:block}
+.date-picker-panel.align-right{left:auto;right:0}
+.date-picker.cell-date{min-width:0;width:100%}
+.date-picker.cell-date .date-picker-trigger{height:30px;padding:5px 7px;border:1px solid transparent;border-radius:4px;font-size:13px;background:transparent}
+.date-picker.cell-date .date-picker-trigger:hover,.date-picker.cell-date.open .date-picker-trigger{border-color:var(--border);background:#fff}
+.date-picker.cell-date.open .date-picker-trigger{border-color:var(--primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.date-picker.cell-date .date-picker-trigger svg{width:13px;height:13px}
+.calendar-head{height:48px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;padding:0 8px}
+.calendar-head strong{flex:1;text-align:center;font-size:15px}
+.calendar-nav{border:0;background:transparent;color:var(--text-3);height:32px;min-width:28px;padding:0 5px;font-size:20px;cursor:pointer;border-radius:4px}
+.calendar-nav:hover{color:var(--text);background:var(--fill)}
+.calendar-body{padding:8px 12px}
+.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.calendar-week span{height:30px;line-height:30px;color:var(--text-2);font-size:12px}
+.calendar-day{height:32px;border:0;background:transparent;border-radius:6px;cursor:pointer;color:var(--text);position:relative}
+.calendar-day:hover{background:var(--primary-bg)}
+.calendar-day.muted{color:var(--text-4)}
+.calendar-day.today{color:var(--primary);font-weight:600}
+.calendar-day.selected{background:var(--primary);color:#fff}
+.calendar-month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px 12px;padding:28px 16px 34px}
+.calendar-month{height:40px;border:0;background:transparent;border-radius:6px;cursor:pointer;color:var(--text);font-size:15px}
+.calendar-month:hover{background:var(--primary-bg);color:var(--primary)}
+.calendar-month.selected{background:var(--primary);color:#fff}
+.calendar-month:disabled{background:var(--fill);color:var(--text-4);cursor:not-allowed}
+.calendar-foot{height:42px;border-top:1px solid var(--border-2);display:flex;align-items:center;justify-content:center}
+.calendar-today{border:0;background:transparent;color:var(--primary);cursor:pointer;font-weight:500}
+.content{padding:24px;flex:1;max-width:1680px;width:100%;margin:0 auto}
+.screen{display:none}
+.screen.active{display:block}
+
+.screen-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.screen-head h2{font-size:20px;font-weight:600;margin-bottom:4px}
+.screen-head p{margin:0;color:var(--text-2);font-size:13px;max-width:680px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card.picker-card{overflow:visible;position:relative;z-index:2}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-2);flex-wrap:wrap;gap:10px}
+.card-head h3{font-size:14.5px;font-weight:600}
+.card-body{padding:16px 20px}
+.card-foot{padding:12px 20px;border-top:1px solid var(--border-2);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:6px;font-size:13.5px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text);transition:all .15s;white-space:nowrap}
+.btn:hover{color:var(--primary);border-color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-hover);border-color:var(--primary-hover);color:#fff}
+.btn.success{background:var(--success);border-color:var(--success);color:#fff}
+.btn.success:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--error)}
+.btn.danger:hover{color:#fff;background:var(--error);border-color:var(--error)}
+.btn.text{border-color:transparent;background:transparent;padding:0 6px;height:24px}
+.btn:disabled{color:var(--text-4)!important;border-color:var(--border-2)!important;background:var(--fill)!important;cursor:not-allowed}
+.footer-select{height:32px;min-width:180px;padding:0 10px;border:1px solid var(--border);border-radius:6px;background:#fff}
+.row-actions{display:flex;align-items:center;justify-content:center;gap:2px;white-space:nowrap}
+.icon-btn{width:28px;height:28px;padding:0;justify-content:center;border-color:transparent;background:transparent;color:var(--text-2)}
+.icon-btn:hover{color:var(--primary);background:var(--primary-bg);border-color:transparent}
+.icon-btn.danger{color:var(--error)}
+.icon-btn.danger:hover{color:var(--error);background:var(--error-bg);border-color:transparent}
+.icon-btn svg{width:16px;height:16px;display:block;fill:currentColor;pointer-events:none}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.stat{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;position:relative;isolation:isolate}
+.stat .label{font-size:12.5px;color:var(--text-2)}
+.stat .value{font-size:24px;font-weight:600;margin-top:6px}
+
+/* BorderBeam (Ant Design): các tia sáng chạy vòng quanh viền thẻ. Dựng bằng conic-gradient xoay
+   quanh tâm rồi dùng mask-composite để chỉ chừa lại đúng phần viền — count=3 tia đặt cách nhau 120°. */
+@property --beam-angle{syntax:'<angle>';inherits:false;initial-value:0deg}
+.stat::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:-1;
+  background:conic-gradient(from var(--beam-angle),
+    transparent 0deg,var(--primary) 14deg,transparent 30deg,
+    transparent 120deg,var(--primary) 134deg,transparent 150deg,
+    transparent 240deg,var(--primary) 254deg,transparent 270deg,
+    transparent 360deg);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  mask-composite:exclude;
+  animation:borderBeam 5s linear infinite;
+}
+@keyframes borderBeam{to{--beam-angle:360deg}}
+@media (prefers-reduced-motion:reduce){.stat::before{animation:none}}
+
+.alert{display:flex;gap:12px;padding:12px 16px;border-radius:8px;background:var(--primary-bg);border:1px solid #91caff;color:var(--text);font-size:13px;line-height:1.6;margin-bottom:16px}
+.alert .dot{width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;margin-top:1px;flex:0 0 20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-style:normal}
+.alert .dot::before{content:'i';font-family:Georgia,serif;font-size:14px}
+
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:var(--text-2)}
+.field input,.field select{height:32px;padding:0 11px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:#fff;color:var(--text)}
+.field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);outline:none}
+.filter-row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;padding:16px 20px}
+.search{height:32px;padding:0 11px;border:1px solid var(--border);border-radius:6px;font-size:13px;min-width:230px}
+.search:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);outline:none}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:10px 10px;background:#fafafa;color:var(--text);font-weight:600;border-bottom:1px solid var(--border-2);white-space:nowrap;position:relative}
+.col-resize-handle{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:5;touch-action:none}
+.col-resize-handle:hover,.col-resize-handle.active{background:rgba(22,119,255,.35)}
+.col-resize-handle.active{background:var(--primary)}
+body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:none!important}
+tbody td{padding:4px 10px;border-bottom:1px solid var(--border-2);vertical-align:middle}
+tbody tr:hover td{background:#fafafa}
+tbody tr:last-child td{border-bottom:none}
+td.readonly{color:var(--text-2)}
+td.nowrap{white-space:nowrap}
+.empty-row td{text-align:center;padding:28px;color:var(--text-3)}
+
+td input[type=text],td input[type=number],td input[type=date],td select{
+  width:100%;min-width:88px;border:1px solid transparent;background:transparent;border-radius:4px;
+  padding:6px 7px;font-size:13px;color:var(--text);font-family:inherit;outline:none;transition:all .12s;
+}
+td input[type=number]{min-width:60px}
+td input:hover,td select:hover{border-color:var(--border);background:#fff}
+td input:focus,td select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+td input::placeholder{color:var(--text-4)}
+td .stack{display:flex;flex-direction:column;gap:2px}
+.table-scroll{overflow:auto;max-width:100%}
+.col-check{width:44px;min-width:44px;text-align:center}
+.col-actions{width:76px;min-width:76px;text-align:center}
+
+.ck{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;position:relative;flex:0 0 16px;vertical-align:middle;margin:0}
+.ck:hover{border-color:var(--primary)}
+.ck:checked{background:var(--primary);border-color:var(--primary)}
+.ck:checked::after{content:'';position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.ck:indeterminate{background:var(--primary);border-color:var(--primary)}
+.ck:indeterminate::after{content:'';position:absolute;left:3px;top:6.5px;width:8px;height:2px;background:#fff}
+
+.tag{display:inline-flex;align-items:center;padding:1px 8px;border-radius:4px;font-size:12px;line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag.blue{color:#0958d9;background:#e6f4ff;border-color:#91caff}
+.tag.green{color:#389e0d;background:#f6ffed;border-color:#b7eb8f}
+.tag.red{color:#cf1322;background:#fff1f0;border-color:#ffa39e}
+.tag.default{color:var(--text-2);background:var(--fill);border-color:var(--border-2)}
+
+.toast{position:fixed;top:20px;right:24px;width:min(440px,calc(100vw - 48px));padding:14px 42px 14px 52px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transform:translateY(-10px);pointer-events:none;transition:all .2s;box-shadow:0 6px 16px rgba(0,0,0,.08);border:1px solid;background:#fff}
+.toast.show{opacity:1;transform:none;pointer-events:auto}
+.toast.success{background:var(--success-bg);border-color:#b7eb8f}.toast.info{background:var(--primary-bg);border-color:#91caff}.toast.warning{background:var(--warning-bg);border-color:#ffe58f}.toast.error{background:var(--error-bg);border-color:#ffa39e}
+.toast-icon{position:absolute;left:16px;top:15px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700}
+.toast.success .toast-icon{background:var(--success)}.toast.info .toast-icon{background:var(--primary)}.toast.warning .toast-icon{background:var(--warning)}.toast.error .toast-icon{background:var(--error)}
+.toast-title{font-weight:600;font-size:14px;margin-bottom:2px}.toast-description{color:var(--text-2);line-height:1.55}
+.toast-close{position:absolute;right:12px;top:10px;border:0;background:transparent;color:var(--text-3);font-size:20px;cursor:pointer;padding:2px 6px}.toast-close:hover{color:var(--text)}
+.period-gate{position:fixed;inset:0;z-index:1000;background:rgba(0,21,41,.72);display:flex;align-items:flex-start;justify-content:center;padding:82px 20px 20px}
+.period-gate.hidden{display:none}
+.gate-card{width:min(440px,100%);background:#fff;border-radius:12px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.gate-card h2{margin-bottom:8px}.gate-card p{color:var(--text-2);margin:0 0 18px}
+.gate-card .date-picker{margin-bottom:14px}.gate-card .date-picker-trigger{height:40px}
+.import-preview{display:none;margin:12px 20px 18px;padding:14px;border:1px solid var(--border);border-radius:8px;background:#fafafa}
+.import-preview.show{display:block}.import-errors{max-height:150px;overflow:auto;color:var(--error);font-size:12px;margin:8px 0}
+.import-preview.import-failed{border-color:#ffa39e;background:var(--error-bg)}.import-preview-head{display:flex;gap:10px;align-items:flex-start}.import-preview-mark{width:22px;height:22px;flex:0 0 22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--error);color:#fff;font-weight:700}.import-preview-message{color:var(--text-2);margin-top:2px}.import-preview-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.upload-control{display:flex;flex-direction:column;align-items:flex-start}
+.upload-control .upload-list{min-width:230px}
+.upload-btn svg{width:15px;height:15px;fill:currentColor}
+.upload-list{width:100%;margin-top:6px}
+.upload-file{position:relative;display:flex;align-items:center;gap:7px;min-height:28px;padding:3px 28px 3px 6px;border-radius:4px;color:var(--text-2);font-size:12px;transition:background .15s}
+.upload-file:hover{background:var(--fill)}
+.upload-file-icon{width:14px;height:14px;flex:0 0 14px;fill:currentColor}.upload-file.uploading{color:var(--primary)}.upload-file.done{color:var(--success)}.upload-file.error{color:var(--error)}
+.upload-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);flex:1}.upload-file-status{white-space:nowrap;font-size:11px}
+.upload-file-remove{position:absolute;right:3px;top:2px;border:0;background:transparent;color:var(--text-3);cursor:pointer;font-size:16px}.upload-file-remove:hover{color:var(--error)}
+.upload-progress{position:absolute;left:27px;right:28px;bottom:1px;height:2px;background:var(--border-2);border-radius:2px;overflow:hidden}.upload-progress span{display:block;height:100%;background:var(--primary);transition:width .2s}
+
+@media(max-width:960px){
+  .sider{width:64px;flex-basis:64px}
+  .sider .label,.sider .logo span:last-child,.sider-footer{display:none}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sider">
+    <div class="logo"><span class="mark">CP</span><span>Container Planner</span></div>
+    <nav class="menu">
+      <div class="menu-group">
+        <div class="menu-group-head" onclick="toggleMenuGroup(this)"><svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 110.8V792H136V270.8l341.6 265.6a55.99 55.99 0 0 0 68.7 0L888 270.8zM833.6 232L512 482 190.4 232h643.2z"/></svg><span>Khai báo</span><span class="chevron">⌄</span></div>
+        <div class="menu-children"><div class="menu-item active" data-screen="vehicles"><span class="label">Khai báo xe</span></div><div class="menu-item" data-screen="routes"><span class="label">Khai báo tuyến đường</span></div><div class="menu-item" data-screen="contlist"><span class="label">Khai báo list cont</span></div></div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-group-head" onclick="toggleMenuGroup(this)"><svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M464 144H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H212V212h200v200zm452-268H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H612V212h200v200zM464 544H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H212V612h200v200zm452-268H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H612V612h200v200z"/></svg><span>Kế hoạch</span><span class="chevron">⌄</span></div>
+        <div class="menu-children"><div class="menu-item" data-screen="planning"><span class="label">Kế hoạch phân công</span></div></div>
+      </div>
+      <div class="menu-group">
+        <div class="menu-group-head" onclick="toggleMenuGroup(this)"><svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32 32 0 0 0 9.3-35.2 444 444 0 0 0-81.5-140l-81.3 28.9a350 350 0 0 0-99.7-57.6l-15.7-85a32 32 0 0 0-25.8-25.7 449 449 0 0 0-164.4 0 32 32 0 0 0-25.8 25.7l-15.8 85.4a352 352 0 0 0-99 57.4l-81.9-29.1a32 32 0 0 0-36.9 11.6 446 446 0 0 0-79.7 137.9 32 32 0 0 0 8.4 37.8l66.3 56.6a355 355 0 0 0 0 114.2L99 625.5a32 32 0 0 0-8.4 37.8 446 446 0 0 0 81.5 140l81.9-29.1a352 352 0 0 0 99 57.4l15.8 85.4a32 32 0 0 0 25.8 25.7 449 449 0 0 0 164.4 0 32 32 0 0 0 25.8-25.7l15.7-85a350 350 0 0 0 99.7-57.6l81.3 28.9a32 32 0 0 0 36.9-11.6 444 444 0 0 0 79.7-137.9 32 32 0 0 0-9.3-35.2zM512 678c-97.2 0-176-78.8-176-176s78.8-176 176-176 176 78.8 176 176-78.8 176-176 176z"/></svg><span>Báo cáo</span><span class="chevron">⌄</span></div>
+        <div class="menu-children"><div class="menu-item" data-screen="detail"><span class="label">Báo cáo sản lượng</span></div><div class="menu-item" data-screen="bee"><span class="label">Báo cáo BEE</span></div><div class="menu-item" data-screen="trips"><span class="label">Chuyến đi tháng này</span></div></div>
+      </div>
+    </nav>
+    <div class="sider-footer">Local-first · SQLite · 1 người dùng</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar"><h1 id="pageTitle">Khai báo xe</h1><div class="period-bar"><label>Kỳ làm việc</label><div class="date-picker" data-input="activePeriod" data-mode="period" data-change="changeActivePeriod"><input type="hidden" id="activePeriod"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel align-right"></div></div><span class="tag blue">● Local mode</span><button class="btn text" onclick="logout()">Đăng xuất</button></div></div>
+
+    <div class="content">
+
+      <!-- ============ 1. KHAI BÁO XE ============ -->
+      <section id="vehicles" class="screen active">
+        <div class="screen-head">
+          <div><h2>Khai báo xe</h2><p>Danh mục xe, tài xế và số ngày nghỉ trong kỳ — sửa trực tiếp trên bảng.</p></div>
+          <div class="actions">
+            <button class="btn" onclick="copyPrevious('vehicles')">Sao chép tháng trước</button>
+            <button class="btn upload-btn" onclick="toast('Chức năng nhập Excel — kết nối vào bước xử lý file ở backend.')"><svg viewBox="0 0 1024 1024"><path d="M480 160h64v448h-64zM314 354l198-194 198 194-45 46-121-119v327h-64V281L359 400zM160 672h64v128h576V672h64v192H160z"/></svg>Upload Excel</button>
+            <button class="btn" onclick="downloadExport('vehicles')">Xuất Excel</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>Danh sách xe</h3>
+            <input class="search" id="vehicleSearch" oninput="renderVehicleTable()" placeholder="Tìm số xe / tài xế...">
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th class="col-check"><input type="checkbox" class="ck" id="vehicleCheckAll" onclick="toggleAll('vehicle', this.checked)"></th>
+                <th style="min-width:110px">Số xe</th><th style="min-width:150px">Tài xế</th><th style="min-width:120px">SĐT</th>
+                <th style="min-width:140px">CCCD</th><th style="width:112px">Số ngày nghỉ</th><th style="min-width:190px">Gợi ý phân công</th><th class="col-actions">Thao tác</th>
+              </tr></thead>
+              <tbody id="vehicleTableBody"></tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <button class="btn" onclick="addVehicleRow()">+ Thêm dòng</button>
+            <button class="btn danger" id="vehicleBulkDeleteBtn" onclick="deleteSelectedVehicles()" disabled>Xóa đã chọn (<span id="vehicleSelCount">0</span>)</button>
+            <span style="flex:1"></span><button class="btn primary" onclick="saveDeclarations('vehicles')">Lưu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 2. CHUYẾN ĐI THÁNG NÀY ============ -->
+      <section id="trips" class="screen">
+        <div class="screen-head">
+          <div><h2>Chuyến đi tháng này</h2><p>Thống kê số chuyến, tuyến gần/tuyến xa của mỗi xe, lấy dữ liệu từ màn Chi tiết Báo cáo.</p></div>
+          <div class="actions"><button class="btn primary" onclick="downloadExport('trips')">Xuất báo cáo</button></div>
+        </div>
+
+        <div class="card picker-card">
+          <div class="filter-row">
+            <div class="field"><label>Kỳ đang chọn</label><input type="text" id="tripMonth" disabled></div>
+            <div class="field"><label>Từ ngày</label><div class="date-picker" data-input="tripFrom" data-mode="date" data-change="renderTrips"><input type="hidden" id="tripFrom"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div></div>
+            <div class="field"><label>Đến ngày</label><div class="date-picker" data-input="tripTo" data-mode="date" data-change="renderTrips"><input type="hidden" id="tripTo"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div></div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="label">Tổng số chuyến</div><div class="value" id="tripTotal">0</div></div>
+          <div class="stat"><div class="label">Chuyến tuyến gần</div><div class="value" id="tripNear">0</div></div>
+          <div class="stat"><div class="label">Chuyến tuyến xa</div><div class="value" id="tripFar">0</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Chi tiết theo xe</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Xe</th><th>Tài xế</th><th>Số chuyến gần</th><th>Số chuyến xa</th><th>Tổng số chuyến</th><th>Số ngày nghỉ (kỳ)</th></tr></thead>
+              <tbody id="tripTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 3. KHAI BÁO TUYẾN ĐƯỜNG ============ -->
+      <section id="routes" class="screen">
+        <div class="screen-head">
+          <div><h2>Khai báo tuyến đường</h2><p>Điểm đi, điểm đến, nhóm quãng đường và tiền lương theo tuyến — sửa trực tiếp trên bảng.</p></div>
+          <div class="actions">
+            <button class="btn" onclick="copyPrevious('routes')">Sao chép tháng trước</button>
+            <button class="btn upload-btn" onclick="toast('Chức năng nhập theo tuần/tháng/quý — kết nối vào bước xử lý file ở backend.')"><svg viewBox="0 0 1024 1024"><path d="M480 160h64v448h-64zM314 354l198-194 198 194-45 46-121-119v327h-64V281L359 400zM160 672h64v128h576V672h64v192H160z"/></svg>Upload Excel</button>
+            <button class="btn" onclick="downloadExport('routes')">Xuất Excel</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Danh sách tuyến</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th class="col-check"><input type="checkbox" class="ck" id="routeCheckAll" onclick="toggleAll('route', this.checked)"></th>
+                <th style="min-width:190px">Điểm đi</th><th style="min-width:190px">Điểm đến</th><th style="width:150px">Nhóm quãng đường</th><th style="width:160px">Tiền lương (VNĐ)</th><th class="col-actions">Thao tác</th>
+              </tr></thead>
+              <tbody id="routeTableBody"></tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <button class="btn" onclick="addRouteRow()">+ Thêm dòng</button>
+            <button class="btn danger" id="routeBulkDeleteBtn" onclick="deleteSelectedRoutes()" disabled>Xóa đã chọn (<span id="routeSelCount">0</span>)</button>
+            <span style="flex:1"></span><button class="btn primary" onclick="saveDeclarations('routes')">Lưu</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 4. KẾ HOẠCH PHÂN CÔNG ============ -->
+      <section id="planning" class="screen">
+        <div class="screen-head">
+          <div><h2>Kế hoạch phân công</h2><p>Khai báo booking theo tháng — sửa trực tiếp trên bảng. Hệ thống tự tính Phân tách container theo ngày.</p></div>
+          <div class="actions">
+            <button class="btn upload-btn" onclick="toast('Chức năng nhập Excel booking sẽ được làm sau khi chốt mẫu file.')"><svg viewBox="0 0 1024 1024"><path d="M480 160h64v448h-64zM314 354l198-194 198 194-45 46-121-119v327h-64V281L359 400zM160 672h64v128h576V672h64v192H160z"/></svg>Upload Excel</button>
+            <button class="btn" onclick="downloadExport('bookings')">Xuất Excel</button>
+          </div>
+        </div>
+
+        <div class="alert">
+          <span class="dot"></span>
+          <span>Phân tách tự tính khi đổi Số lượng hoặc Ngày dự kiến (VD: 3 cont / 3 ngày → "1-1-1"). Sửa tay được, nếu không khớp tổng khi Lưu thì hệ thống tự tính lại. Tuyến đường chọn từ danh sách đã khai ở màn 3.</span>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Danh sách booking tháng này</h3><span class="tag default" id="bookingCount">0 booking</span></div>
+          <div class="table-scroll">
+            <table style="min-width:2000px">
+              <thead><tr>
+                <th class="col-check"><input type="checkbox" class="ck" id="bookingCheckAll" onclick="toggleAll('booking', this.checked)"></th>
+                <th style="min-width:190px">Khách hàng</th><th style="width:88px">IMP/EXP</th><th class="col-autofit" style="width:1%;white-space:nowrap">Book/Bill</th>
+                <th style="width:72px">SL</th><th style="min-width:110px">Hãng</th><th style="width:142px">Từ ngày</th><th style="width:142px">Đến ngày</th>
+                <th style="min-width:160px">Cutoff/DET</th><th style="min-width:170px">HPH→NSI</th><th style="min-width:170px">NSI→HPH</th>
+                <th style="width:110px">Phân tách</th><th style="width:110px">Tiến độ</th><th style="min-width:210px">Tuyến đường</th>
+                <th style="min-width:180px">Ghi chú</th><th class="col-actions">Thao tác</th>
+              </tr></thead>
+              <tbody id="bookingTableBody"></tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <button class="btn" onclick="addBookingRow()">+ Thêm dòng</button>
+            <button class="btn danger" id="bookingBulkDeleteBtn" onclick="deleteSelectedBookings()" disabled>Xóa đã chọn (<span id="bookingSelCount">0</span>)</button>
+            <span style="flex:1"></span>
+            <button class="btn primary" onclick="saveAllBookings()">Lưu thay đổi</button>
+            <button class="btn success" onclick="pushToProductionReport()">Đẩy dữ liệu → Báo cáo sản lượng</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 5. KHAI BÁO LIST CONT ============ -->
+      <section id="contlist" class="screen">
+        <div class="screen-head">
+          <div><h2>Khai báo list cont</h2><p>Màn độc lập — khai báo Book/Bill, Số cont, Loại cont, Số seal trực tiếp trên bảng, không phụ thuộc Kế hoạch phân công.</p></div>
+          <div class="actions">
+            <div class="upload-control"><button class="btn upload-btn" onclick="document.getElementById('contExcelFile').click()"><svg viewBox="0 0 1024 1024" aria-hidden="true"><path d="M400 317.7h73.9V656c0 4.4 3.6 8 8 8h60.2c4.4 0 8-3.6 8-8V317.7H624c6.7 0 10.4-7.7 6.3-12.9L518.3 163a8 8 0 0 0-12.6 0l-112 141.7c-4.1 5.3-.4 13 6.3 13zM878.7 724.7c-3.9-9.3-9.2-17.6-15.7-24.7-6.5-7.1-14.3-12.7-23.1-16.6A71.6 71.6 0 0 0 811 677H692c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h116c4.4 0 8 3.6 8 8v55H208v-55c0-4.4 3.6-8 8-8h116c4.4 0 8-3.6 8-8v-60c0-4.4-3.6-8-8-8H213c-10.3 0-20.1 2.2-28.9 6.4-8.8 3.9-16.6 9.5-23.1 16.6a76.4 76.4 0 0 0-15.7 24.7A78.5 78.5 0 0 0 140 753v63c0 20.7 8.4 39.5 22 53.1 13.6 13.6 32.4 22 53.1 22h593.8c20.7 0 39.5-8.4 53.1-22 13.6-13.6 22-32.4 22-53.1v-63c0-9.9-1.8-19.7-5.3-28.3z"/></svg>Upload Excel</button><input type="file" id="contExcelFile" accept=".xlsx" hidden onchange="previewContainerExcel(this.files[0])"><div id="contUploadList" class="upload-list"></div></div>
+            <button class="btn" onclick="downloadExport('containers')">Tải file Excel mẫu</button>
+          </div>
+        </div>
+
+        <div class="alert">
+          <span class="dot"></span>
+          <span>Nhập số Book/Bill rồi bấm <strong>Load</strong> để làm việc với danh sách cont của đúng Book/Bill đó. Ở Báo cáo sản lượng, chọn Số cont sẽ tự điền Loại cont/Số seal theo đúng dữ liệu khai ở màn này.</span>
+        </div>
+
+        <div class="card">
+          <div class="filter-row">
+            <div class="field"><label>Số Book/Bill</label><input class="search" id="contBookBill" placeholder="VD: ZIMULAX926466" onkeydown="if(event.key==='Enter')loadContainersByBookBill()"></div>
+            <button class="btn primary" onclick="loadContainersByBookBill()">Load</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Danh sách cont</h3><span class="tag default" id="contCount">0 cont</span></div>
+          <div class="table-scroll">
+            <table style="min-width:900px">
+              <thead><tr>
+                <th class="col-check"><input type="checkbox" class="ck" id="contCheckAll" onclick="toggleAll('cont', this.checked)"></th>
+                <th style="min-width:140px">Book/Bill</th>
+                <th style="min-width:170px">Số cont</th><th style="width:120px">Loại cont</th><th style="min-width:150px">Số seal</th>
+              </tr></thead>
+              <tbody id="contTableBody"></tbody>
+            </table>
+          </div>
+          <div class="card-foot">
+            <button class="btn" onclick="addContainerRow()">+ Thêm dòng</button>
+            <button class="btn danger" id="contBulkDeleteBtn" onclick="deleteSelectedContainers()" disabled>Xóa đã chọn (<span id="contSelCount">0</span>)</button>
+            <span style="flex:1"></span>
+            <button class="btn primary" onclick="saveContainers()">Lưu danh sách cont</button>
+          </div>
+          <div id="contImportPreview" class="import-preview"></div>
+        </div>
+      </section>
+
+      <!-- ============ 6. CHI TIẾT BÁO CÁO ============ -->
+      <section id="detail" class="screen">
+        <div class="screen-head">
+          <div><h2>Chi tiết Báo cáo</h2><p>Tự sinh theo Số lượng và Phân tách của booking. Chọn Số cont để tự điền Loại cont/Số seal; chọn Số xe để tự map tài xế.</p></div>
+          <div class="actions"><button class="btn" onclick="downloadExport('detail')">Xuất Excel</button></div>
+        </div>
+
+        <div class="card picker-card">
+          <div class="filter-row">
+            <div class="field"><label>Từ ngày</label><div class="date-picker" data-input="dFrom" data-mode="date" data-change="onDetailDateChange"><input type="hidden" id="dFrom"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div></div>
+            <div class="field"><label>Đến ngày</label><div class="date-picker" data-input="dTo" data-mode="date" data-change="onDetailDateChange"><input type="hidden" id="dTo"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div></div>
+            <div class="field"><label>Xe</label><select id="dVehicle" onchange="loadDetail()"><option value="">Tất cả xe</option></select></div>
+            <div class="field"><label>Tìm Book / Khách hàng</label><input class="search" id="dSearch" oninput="scheduleDetailLoad()" placeholder="Nhập để tìm..."></div>
+            <button class="btn success" id="syncDayBtn" onclick="syncDetailDay()">Đồng bộ khoảng ngày này</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Bảng chi tiết</h3><span class="tag default" id="detailCount">0 dòng</span></div>
+          <div class="table-scroll">
+            <table style="min-width:1500px">
+              <thead><tr>
+                <th style="width:44px">STT</th><th style="min-width:120px">Bill/Book</th><th style="min-width:150px">Số cont</th>
+                <th style="width:90px">Loại cont</th><th style="min-width:120px">Số seal</th><th style="min-width:150px">Chủ hàng</th>
+                <th style="min-width:170px">Số xe</th><th style="width:110px">Ngày</th><th style="min-width:190px">Tuyến đường</th>
+                <th style="width:110px">Tiền lương</th><th style="min-width:110px">Ghi chú</th><th style="width:90px">Vendor</th>
+              </tr></thead>
+              <tbody id="detailTableBody"></tbody>
+            </table>
+          </div>
+          <div class="card-foot"><button class="btn primary" onclick="toast('Đã lưu thay đổi')">Lưu</button></div>
+        </div>
+      </section>
+
+      <!-- ============ 7. BÁO CÁO BEE ============ -->
+      <section id="bee" class="screen">
+        <div class="screen-head">
+          <div><h2>Báo cáo BEE</h2><p>Lấy dữ liệu từ Báo cáo sản lượng, kèm Họ tên và Số điện thoại tài xế theo xe đã phân công.</p></div>
+          <div class="actions"><button class="btn" onclick="downloadExport('bee')">Xuất Excel</button></div>
+        </div>
+
+        <div class="card picker-card">
+          <div class="filter-row">
+            <div class="field"><label>Từ ngày</label><div class="date-picker" data-input="beeFrom" data-mode="date" data-change="onBeeDateChange"><input type="hidden" id="beeFrom"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div></div>
+            <div class="field"><label>Đến ngày</label><div class="date-picker" data-input="beeTo" data-mode="date" data-change="onBeeDateChange"><input type="hidden" id="beeTo"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div></div>
+            <div class="field"><label>Xe</label><select id="beeVehicle" onchange="loadBee()"><option value="">Tất cả xe</option></select></div>
+            <div class="field"><label>Tìm Book / Khách hàng</label><input class="search" id="beeSearch" oninput="scheduleBeeLoad()" placeholder="Nhập để tìm..."></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Bảng báo cáo BEE</h3><span class="tag default" id="beeCount">0 dòng</span></div>
+          <div class="table-scroll">
+            <table style="min-width:1300px">
+              <thead><tr>
+                <th style="width:44px">STT</th><th style="min-width:120px">Bill/Book</th><th style="min-width:150px">Số cont</th>
+                <th style="width:90px">Loại cont</th><th style="min-width:120px">Số seal</th><th style="min-width:150px">Chủ hàng</th>
+                <th style="min-width:120px">Số xe</th><th style="min-width:150px">Họ tên</th><th style="min-width:130px">Số điện thoại</th>
+                <th style="width:110px">Ngày</th>
+              </tr></thead>
+              <tbody id="beeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+<div id="periodGate" class="period-gate">
+  <div class="gate-card"><h2>Chọn kỳ làm việc</h2><p>Hãy chọn một ngày trong tháng/năm muốn làm việc. Hệ thống sẽ tự ánh xạ dữ liệu theo đúng tháng đó.</p><div class="date-picker wide" data-input="gatePeriod" data-mode="period"><input type="hidden" id="gatePeriod"><button type="button" class="date-picker-trigger" onclick="toggleDatePicker(this)"><span class="date-picker-text">Chọn ngày</span><svg viewBox="0 0 1024 1024"><path d="M880 184H712v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H384v-40c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V456h656v384zM184 384V256h136v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h256v32c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-32h136v128H184z"/></svg></button><div class="date-picker-panel"></div></div><button class="btn primary" style="width:100%;justify-content:center" onclick="confirmInitialPeriod()">Bắt đầu làm việc</button></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
